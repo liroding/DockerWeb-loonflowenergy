@@ -10,7 +10,7 @@ media/workflow_script/*.*
 media/notice_script/*.*
 !media/notice_script/demo_notice_script.py
 tests/testloonflow.sql
-settings/config.py
+!settings/config.py
 sphinx_docs/build/
 sphinx_docs/source/_build/
 docker_compose_deploy/loonflow_only/dbdata/*
