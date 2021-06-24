@@ -8,6 +8,9 @@ from service.account.account_base_service import account_base_service_ins
 from service.format_response import api_response
 from service.ticket.ticket_base_service import ticket_base_service_ins
 
+from apps.ticket.models import TicketRecord, TicketCustomField, TicketFlowLog, TicketUser
+
+from service.workflow.workflow_custom_field_service import workflow_custom_field_service_ins
 
 class TicketListView(LoonBaseView):
     post_schema = Schema({
@@ -665,4 +668,64 @@ class TicketRetreat(LoonBaseView):
             return api_response(0, '', {})
         else:
             return api_response(-1, result, {})
+#add by liro
+class TicketFieldList(LoonBaseView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取工单详情，根据用户返回不同的内容(是否有工单表单的编辑权限)
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        request_data = request.GET
+        ticket_id = kwargs.get('ticket_id')
+        app_name = request.META.get('HTTP_APPNAME')
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        if not app_permission_check:
+            return api_response(-1, msg, '')
 
+        # username = request_data.get('username', '')
+        username = request.META.get('HTTP_USERNAME')
+        retlist = [] 
+        ticket_obj = TicketRecord.objects.filter(id=ticket_id, is_deleted=0).first()
+        workflow_id = ticket_obj.workflow_id
+        flag, result = workflow_custom_field_service_ins.get_workflow_custom_field_name_list(workflow_id)
+        custom_fieldkey = result['ticket_custom_field_key_list']
+        custom_fieldkey.append('title')
+        custom_fieldkey.append('creator')
+        ticket_fieldkey = custom_fieldkey  #包含了自定义和title 的字段
+        
+        flag, msg = ticket_base_service_ins.get_ticket_base_field_list(ticket_id)
+        base_fieldlist = msg['field_list'] #包含了所有定义的字段(有一些默认的字段)
+        for key in ticket_fieldkey:
+               for baselist in base_fieldlist:
+                    if key == baselist['field_key']:
+                    #     print(key)
+                     #    print(baselist)
+                         retlist.append(baselist)
+        print(retlist)
+        '''
+        #flag, result = ticket_base_service_ins.get_ticket_custom_field_name(ticket_id,'question')
+        flag, result = ticket_base_service_ins.get_ticket_format_custom_field_key_dict(ticket_id)
+        print(str(result))
+        flag, basefieldlist = ticket_base_service_ins.get_ticket_base_field_list(ticket_id)
+        print('end1')
+        print(str(basefieldlist))
+        print('end')
+         
+        if flag:
+            code, data = 0, dict(value=result)
+        else:
+            code, data, msg = -1, {}, result
+        flag, result = ticket_base_service_ins.get_ticket_custom_field_value(ticket_id)
+        print(str(result))
+        '''
+        #flag, msg = ticket_base_service_ins.get_ticket_base_field_list(ticket_id)
+        #print(str(msg))
+        if flag:
+            code, msg, data = 0, '', retlist
+        else:
+            code, msg, data = -1, msg, {}
+        return api_response(code, msg, data)
+        #return api_response(0,msg ,'{}')

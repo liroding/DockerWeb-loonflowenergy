@@ -2462,5 +2462,5 @@ class TicketBaseService(BaseService):
         else:
             return True, "ticket's workflow admin casn close ticket in any state"
 
-
+        
 ticket_base_service_ins = TicketBaseService()
