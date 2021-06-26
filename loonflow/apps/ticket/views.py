@@ -694,10 +694,14 @@ class TicketFieldList(LoonBaseView):
         custom_fieldkey = result['ticket_custom_field_key_list']
         custom_fieldkey.append('title')
         custom_fieldkey.append('creator')
+        custom_fieldkey.append('gmt_created')
         ticket_fieldkey = custom_fieldkey  #包含了自定义和title 的字段
         
         flag, msg = ticket_base_service_ins.get_ticket_base_field_list(ticket_id)
         base_fieldlist = msg['field_list'] #包含了所有定义的字段(有一些默认的字段)
+        #print('l1')
+        #print(base_fieldlist)
+        #print('l2')
         for key in ticket_fieldkey:
                for baselist in base_fieldlist:
                     if key == baselist['field_key']:
