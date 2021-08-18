@@ -12,6 +12,13 @@ from service.workflow.workflow_custom_notice_service import workflow_custom_noti
 from service.workflow.workflow_runscript_service import workflow_run_script_service_ins
 from service.workflow.workflow_state_service import workflow_state_service_ins
 from service.workflow.workflow_transition_service import workflow_transition_service_ins
+#add by liro
+#增加此部分，为了从TicketRecord 获取workflow_id 对应的所有ticket_id
+from service.ticket.ticket_base_service import ticket_base_service_ins
+from apps.ticket.models import TicketRecord, TicketCustomField, TicketFlowLog, TicketUser
+
+import logging
+logger = logging.getLogger('django')
 
 
 class WorkflowView(LoonBaseView):
@@ -963,4 +970,56 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
             code, msg, = 0, ''
         else:
             code, data = -1, ''
+        return api_response(code, msg, data)
+
+
+
+
+class WorkflowAllTicketData(LoonBaseView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取工单详情，根据用户返回不同的内容(是否有工单表单的编辑权限)
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
+        workflow_id = kwargs.get('workflow_id')
+        app_name = request.META.get('HTTP_APPNAME')
+        # 判断是否有工作流的权限
+        app_permission, msg = account_base_service_ins.app_workflow_permission_check(app_name, workflow_id)
+        if not app_permission:
+            return api_response(-1, 'APP:{} have no permission to get this workflow info'.format(app_name), '')
+
+        alldatalist = [] 
+        #获取workflow_id 相关的所有fieldkey
+        flag, result = workflow_custom_field_service_ins.get_workflow_custom_field_name_list(workflow_id)
+        custom_fieldkey = result['ticket_custom_field_key_list']
+        custom_fieldkey.append('title')
+        custom_fieldkey.append('creator')
+        custom_fieldkey.append('gmt_created')
+        ticket_fieldkey = custom_fieldkey  #包含了自定义和title 的字段
+
+        ticket_obj = TicketRecord.objects.filter(workflow_id=workflow_id, is_deleted=0)
+        
+        for obj in ticket_obj:
+           print(obj.id)
+           retlist = []
+           #获得ticket id 对应的数据元素
+           flag, msg = ticket_base_service_ins.get_ticket_base_field_list(obj.id)
+           base_fieldlist = msg['field_list'] #包含了所有定义的字段(有一些默认的字段)       
+           for key in ticket_fieldkey:
+               for baselist in base_fieldlist:
+                    if key == baselist['field_key']:
+                         print(key)
+                         print(baselist)
+                         retlist.append(baselist)
+       #    print(retlist)
+           alldatalist.append(retlist)
+        print(alldatalist)
+        if alldatalist:
+            code, msg, data = 0, '', alldatalist
+        else:
+            code, msg, data = -1, msg, {}
         return api_response(code, msg, data)
