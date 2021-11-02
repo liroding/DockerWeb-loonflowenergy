@@ -984,6 +984,13 @@ class WorkflowAllTicketData(LoonBaseView):
         :param kwargs:
         :return:
         """
+        request_data = request.GET
+        username = request.META.get('HTTP_USERNAME')
+
+
+        per_page = int(request_data.get('per_page', 10))
+        page = int(request_data.get('page', 1))
+        ticket_data = int(request_data.get('ticket_data', 0))
 
         workflow_id = kwargs.get('workflow_id')
         app_name = request.META.get('HTTP_APPNAME')
@@ -1009,15 +1016,26 @@ class WorkflowAllTicketData(LoonBaseView):
            #获得ticket id 对应的数据元素
            flag, msg = ticket_base_service_ins.get_ticket_base_field_list(obj.id)
            base_fieldlist = msg['field_list'] #包含了所有定义的字段(有一些默认的字段)       
+
+           ticket_id = obj.id
+           stlgflag, stlgresult = ticket_base_service_ins.get_ticket_flow_log(ticket_id, username, per_page, page, ticket_data)
+
+
+           if stlgflag is not False:
+               paginator_info = stlgresult.get('paginator_info')
+               stlgdata = dict(value=stlgresult.get('ticket_flow_log_restful_list'), per_page=paginator_info.get('per_page'),page=paginator_info.get('page'), total=paginator_info.get('total'))
+           else:
+               print('error !!!!')
+         
+           #stlgdata_list = []
+           #stlgdata_list.append(stlgdata) #dict 封装成list
            for key in ticket_fieldkey:
                for baselist in base_fieldlist:
                     if key == baselist['field_key']:
-                         print(key)
-                         print(baselist)
                          retlist.append(baselist)
        #    print(retlist)
+           retlist.append(stlgdata)
            alldatalist.append(retlist)
-        print(alldatalist)
         if alldatalist:
             code, msg, data = 0, '', alldatalist
         else:

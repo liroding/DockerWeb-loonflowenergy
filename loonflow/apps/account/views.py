@@ -12,9 +12,86 @@ from schema import Schema, Regex, And, Or, Use, Optional
 
 from service.permission.manage_permission import manage_permission_check
 
+####################################################################
+#背景：workflow 用户端需要获取用户列表以及角色用户
+#问题：loonflow 原本提供了相关函数，但是需要登录验证才可以使用
+#解决：保持loonflow 函数，不做修改，重写新函数。
+class LiroUserView(LoonBaseView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取用户列表
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        
+        request_data = request.GET
+        search_value = request_data.get('search_value', '')
+        per_page = int(request_data.get('per_page', 10))
+        page = int(request_data.get('page', 1))
+
+        flag, result = account_base_service_ins.get_user_list(search_value, page, per_page)
+        if flag is not False:
+            data = dict(value=result.get('user_result_object_format_list'),
+                        per_page=result.get('paginator_info').get('per_page'),
+                        page=result.get('paginator_info').get('page'),
+                        total=result.get('paginator_info').get('total'))
+            code, msg,  = 0, ''
+        else:
+            code, data = -1, ''
+        return api_response(code, msg, data)
+
+
+class LiroRoleUserView(LoonBaseView):
+
+    def get(self, request, *args, **kwargs):
+        print('[liro-debug] enter user view LiroRoleUserView')
+        """
+        角色的用户信息
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        role_id = kwargs.get('role_id', 0)
+        search_value = request.GET.get('search_value', '')
+        flag, result = account_base_service_ins.get_role_user_info_by_role_id(role_id, search_value)
+
+        if flag is not False:
+            data = dict(value=result.get('user_result_format_list'), per_page=result.get('paginator_info').get('per_page'),
+                        page=result.get('paginator_info').get('page'), total=result.get('paginator_info').get('total'))
+            code, msg, = 0, ''
+        else:
+            code, data = -1, ''
+        return api_response(code, msg, data)
+
+    def post(self, request, *args, **kwargs):
+        """
+        add role's user
+        新增角色用户
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        role_id = kwargs.get('role_id', 0)
+        creator = request.user.username
+        json_str = request.body.decode('utf-8')
+        request_data_dict = json.loads(json_str)
+        user_id = request_data_dict.get('user_id', 0)
+
+        flag, result = account_base_service_ins.add_role_user(role_id, user_id, creator)
+        if flag is False:
+            return api_response(-1, result, {})
+        return api_response(0, '', {})
+
+########################################################################
 
 @method_decorator(login_required, name='dispatch')
 class LoonUserView(LoonBaseView):
+    def __init__(self, *args, **kwargs):
+        print('[liro-debug] enter user view 1')
     post_schema = Schema({
         'username': And(str, lambda n: n != '', error='username is needed'),
         'alias': And(str, lambda n: n != '', error='alias is needed'),
@@ -36,6 +113,7 @@ class LoonUserView(LoonBaseView):
         :param kwargs:
         :return:
         """
+        print('[liro-debug] enter user view 2')
         request_data = request.GET
         search_value = request_data.get('search_value', '')
         per_page = int(request_data.get('per_page', 10))
