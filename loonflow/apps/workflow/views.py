@@ -21,6 +21,84 @@ import logging
 logger = logging.getLogger('django')
 
 
+#class WorkflowView(LoonBaseView):
+#    post_schema = Schema({
+#        'name': And(str, lambda n: n != '', error='name is needed'),
+#        Optional('description'): str,
+#        str: object
+#
+#    })
+#
+#    def get(self, request, *args, **kwargs):
+#        """
+#        获取工作流列表
+#        :param request:
+#        :param args:
+#        :param kwargs:
+#        :return:
+#        """
+#        request_data = request.GET
+#        search_value = request_data.get('search_value', '')
+#        per_page = int(request_data.get('per_page', 10))
+#        page = int(request_data.get('page', 1))
+#        from_admin = int(request_data.get('from_admin', 0))  # 获取有管理权限的工作流列表
+#        username = request.META.get('HTTP_USERNAME')
+#        app_name = request.META.get('HTTP_APPNAME')
+#
+#        flag, result = account_base_service_ins.app_workflow_permission_list(app_name)
+#
+#        if not flag:
+#            return api_response(-1, result, {})
+#        if not result.get('workflow_id_list'):
+#            data = dict(value=[], per_page=per_page, page=page, total=0)
+#            code, msg, = 0, ''
+#            return api_response(code, msg, data)
+#        permission_workflow_id_list = result.get('workflow_id_list')
+#
+#        flag, result = workflow_base_service_ins.get_workflow_list(search_value, page, per_page, permission_workflow_id_list, username, from_admin)
+#        if flag is not False:
+#            paginator_info = result.get('paginator_info')
+#            data = dict(value=result.get('workflow_result_restful_list'), per_page=paginator_info.get('per_page'),
+#                        page=paginator_info.get('page'), total=paginator_info.get('total'))
+#            code, msg,  = 0, ''
+#        else:
+#            code, data, msg = -1, '', result
+#        return api_response(code, msg, data)
+#
+#    @manage_permission_check('workflow_admin')
+#    def post(self, request, *args, **kwargs):
+#        """
+#        新增工作流
+#        :param request:
+#        :param args:
+#        :param kwargs:
+#        :return:
+#        """
+#        json_str = request.body.decode('utf-8')
+#        if not json_str:
+#            return api_response(-1, 'post参数为空', {})
+#        request_data_dict = json.loads(json_str)
+#        name = request_data_dict.get('name', '')
+#        description = request_data_dict.get('description', '')
+#        notices = request_data_dict.get('notices', '')
+#        view_permission_check = request_data_dict.get('view_permission_check', 1)
+#        limit_expression = request_data_dict.get('limit_expression', '')
+#        display_form_str = request_data_dict.get('display_form_str', '')
+#        workflow_admin = request_data_dict.get('workflow_admin', '')
+#        title_template = request_data_dict.get('title_template', '')
+#        content_template = request_data_dict.get('content_template', '')
+#        creator = request.META.get('HTTP_USERNAME', '')
+#        flag, result = workflow_base_service_ins.add_workflow(
+#            name, description, notices, view_permission_check, limit_expression, display_form_str, creator,
+#            workflow_admin, title_template, content_template)
+#        if flag is False:
+#            code, msg, data = -1, result, {}
+#        else:
+#            code, msg, data = 0, '', {'workflow_id': result.get('workflow_id')}
+#        return api_response(code, msg, data)
+
+
+
 class WorkflowView(LoonBaseView):
     post_schema = Schema({
         'name': And(str, lambda n: n != '', error='name is needed'),
@@ -57,8 +135,62 @@ class WorkflowView(LoonBaseView):
 
         flag, result = workflow_base_service_ins.get_workflow_list(search_value, page, per_page, permission_workflow_id_list, username, from_admin)
         if flag is not False:
+
+            #add by liro
+            #此处进行分析根据user查找与其相关的workflow,返回前端
+
+            resultlist = result.get('workflow_result_restful_list')
+            retlist =[]
+            if(username != 'admin'):
+                for item in resultlist:
+                    #输出每个workflow 对应信息
+                    workflow_id = item['id']
+
+                    flag, state_result = workflow_state_service_ins.get_workflow_states(workflow_id)
+                    if flag is not False:
+                         for stateitem in state_result:
+                             flag = 0
+                             participant_typeid = stateitem.participant_type_id
+                             participant = stateitem.participant
+
+                             if participant_typeid == 1 or participant_typeid ==2:
+                                print('person or mutil person handle') 
+                                participantlist = participant.split(',')
+                                #print(participantlist)
+                                if username in participantlist:
+                                   retlist.append(item)
+                                   flag = 1
+                              
+                             elif participant_typeid == 3:
+                                print('dept handle')   
+                                flag, deptvalue = account_base_service_ins.get_user_up_dept_id_list(username)
+                                #整形转字符，e.g: 1 -> '1';2 -> '2' 
+                                intdeptvalue = deptvalue[0] 
+                                participantlist = participant.split(',')
+                                participantlist = list(map(int,participantlist))
+                                if intdeptvalue in participantlist:
+                                   retlist.append(item)
+                                   flag = 1
+                                #查询该用户是否属于此dept 中 (dept可以为多项)
+                             elif participant_typeid == 4:
+                                print('role handle')   
+                                #查询该用户是否属于此role 中(participant),role 执行是一个 
+                                flag, userlist = account_base_service_ins.get_role_user_info_by_role_id(participant, '')
+
+                                value=userlist.get('user_result_format_list')
+                                for item_user in value:
+                                    if(item_user['username']== username):
+                                        retlist.append(item)
+                                        flag = 1
+                             #flag!=0 表示此workflow 需要展示
+                             if(flag != 0):
+                                break
+                #print(retlist)
+            else:
+                 retlist = resultlist      
+	    ######################################################
             paginator_info = result.get('paginator_info')
-            data = dict(value=result.get('workflow_result_restful_list'), per_page=paginator_info.get('per_page'),
+            data = dict(value=retlist, per_page=paginator_info.get('per_page'),
                         page=paginator_info.get('page'), total=paginator_info.get('total'))
             code, msg,  = 0, ''
         else:
@@ -96,6 +228,12 @@ class WorkflowView(LoonBaseView):
         else:
             code, msg, data = 0, '', {'workflow_id': result.get('workflow_id')}
         return api_response(code, msg, data)
+
+
+
+
+
+
 
 
 class WorkflowUserAdminView(LoonBaseView):

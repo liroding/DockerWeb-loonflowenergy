@@ -24,6 +24,6 @@ urlpatterns = [
     path('/custom_notices/<int:notice_id>', WorkflowCustomNoticeDetailView.as_view()),
     #add by liro   查找workflow_id对应的所有ticket_id,然后获取数据
     path('/<int:workflow_id>/download', WorkflowAllTicketData.as_view()),
-
-
+    #add by liro   查找与username 相关的workflow
+    path('/user', WorkflowView.as_view()),
 ]
