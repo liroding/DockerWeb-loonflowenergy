@@ -152,7 +152,11 @@ class WorkflowView(LoonBaseView):
                              flag = 0
                              participant_typeid = stateitem.participant_type_id
                              participant = stateitem.participant
-
+                   #lable 是自定义的json结构,"isalluserdly" 代表是否对所有用户直接显示
+                             label = stateitem.label
+                             if 'isalluserdly' in label:
+                                retlist.append(item)
+                                break
                              if participant_typeid == 1 or participant_typeid ==2:
                                 print('person or mutil person handle') 
                                 participantlist = participant.split(',')
@@ -185,7 +189,7 @@ class WorkflowView(LoonBaseView):
                              #flag!=0 表示此workflow 需要展示
                              if(flag != 0):
                                 break
-                #print(retlist)
+            #admin 用户所有workflow可见
             else:
                  retlist = resultlist      
 	    ######################################################
