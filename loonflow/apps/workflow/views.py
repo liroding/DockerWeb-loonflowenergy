@@ -145,7 +145,6 @@ class WorkflowView(LoonBaseView):
                 for item in resultlist:
                     #输出每个workflow 对应信息
                     workflow_id = item['id']
-
                     flag, state_result = workflow_state_service_ins.get_workflow_states(workflow_id)
                     if flag is not False:
                          for stateitem in state_result:
@@ -168,24 +167,31 @@ class WorkflowView(LoonBaseView):
                              elif participant_typeid == 3:
                                 print('dept handle')   
                                 flag, deptvalue = account_base_service_ins.get_user_up_dept_id_list(username)
-                                #整形转字符，e.g: 1 -> '1';2 -> '2' 
-                                intdeptvalue = deptvalue[0] 
-                                participantlist = participant.split(',')
-                                participantlist = list(map(int,participantlist))
-                                if intdeptvalue in participantlist:
-                                   retlist.append(item)
-                                   flag = 1
+                                #如果deptvalue非空,代表user有所属dept组
                                 #查询该用户是否属于此dept 中 (dept可以为多项)
+                                if len(deptvalue):  
+                               	      #整形转字符，e.g: 1 -> '1';2 -> '2' 
+                               	      intdeptvalue = deptvalue[0] 
+                               	      participantlist = participant.split(',')
+                               	      participantlist = list(map(int,participantlist))
+                               	      if intdeptvalue in participantlist:
+                               	         retlist.append(item)
+                               	         flag = 1
+                                else:
+                                      break 
                              elif participant_typeid == 4:
                                 print('role handle')   
-                                #查询该用户是否属于此role 中(participant),role 执行是一个 
+                                #查询该用户是否属于此role 中(participant) 
                                 flag, userlist = account_base_service_ins.get_role_user_info_by_role_id(participant, '')
 
-                                value=userlist.get('user_result_format_list')
-                                for item_user in value:
-                                    if(item_user['username']== username):
-                                        retlist.append(item)
-                                        flag = 1
+                                if len(userlist):  
+                               	     value = userlist.get('user_result_format_list')
+                               	     for item_user in value:
+                               	         if(item_user['username']== username):
+                               	             retlist.append(item)
+                               	             flag = 1
+                                else:
+                                     break
                              #flag!=0 表示此workflow 需要展示
                              if(flag != 0):
                                 break
