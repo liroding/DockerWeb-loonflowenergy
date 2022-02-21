@@ -21,8 +21,12 @@ class TicketRecord(BaseModel):
     script_run_last_result = models.BooleanField(u'脚本最后一次执行结果', default=True)
     act_state_id = models.IntegerField('进行状态', default=1, help_text='当前工单的进行状态,详见service.constant_service中定义')
     multi_all_person = models.CharField('全部处理的结果', max_length=1000, default='{}', blank=True, help_text='需要当前状态处理人全部处理时实际的处理结果，json格式')
-
-
+#------------------------- add by liro----------------#
+#note: 此处新增加的init_participant_type_id 是为了在新建工单时记录处理类型，
+#为了解决项目中期新添加用户无法查看前期用户提交的工单,此变量后续作为查找的依据。
+    init_participant_type_id = models.IntegerField('初始处理人类型', default=0, help_text='0.无处理人,1.个人,2.多人,3.部门,4.角色')
+    init_participant = models.CharField('初始处理人', max_length=1000, default='', blank=True, help_text='可以为空(无处理人的情况，如结束状态)、username\多个username(以,隔开)\部门id\角色id\脚本文件名等')
+#=====================================================#
     class Meta:
         verbose_name = '工单记录'
         verbose_name_plural = '工单记录'

@@ -650,6 +650,8 @@ function getWorkflowId() {
       distribute_type_id: Number(stateDistributeTypeId),
       state_field_str: stateFieldStr,
       label: stateLabel,
+      init_participant_type_id: Number(stateParticipantTypeId),  //add by liro
+      init_participant: stateParticipant,   //add by liro
     }
 
     var stateId = $('#stateId').val();
@@ -933,8 +935,8 @@ function getWorkflowId() {
       // 不显示参与人类型及参与人
       $("#stateParticipantTypeId").val('0');
       $("#stateParticipant").val('');
-      $("#stateParticipantTypeIdDiv").hide();
-      $("#stateParticipantDiv").hide();  
+      //$("#stateParticipantTypeIdDiv").hide(); //comment by liro
+      //$("#stateParticipantDiv").hide();  //comment by liro
     } else {
       $("#stateParticipantTypeIdDiv").show();
       $("#stateParticipantDiv").show(); 

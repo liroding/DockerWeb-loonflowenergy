@@ -70,6 +70,8 @@ class TicketBaseService(BaseService):
             return False, 'category value is invalid, it should be in all, owner, duty, relation'
         query_params = Q(is_deleted=False)
 
+
+
         # 获取调用方app_name 有权限的workflow_id_list
         flag, result = account_base_service_ins.app_workflow_permission_list(app_name)
 
@@ -153,9 +155,31 @@ class TicketBaseService(BaseService):
             query_params &= act_state_expression
             ticket_objects = TicketRecord.objects.filter(query_params).order_by(order_by_str)
         elif category == 'relation':
+            #add by liro
+            userrolelist = account_base_service_ins.get_user_role_id_list(username)  #获取用户所属role list
+            userdeptlist = account_base_service_ins.get_user_up_dept_id_list(username)
             relation_query_expression = Q(ticketuser__username=username)
             query_params &= relation_query_expression
-            ticket_objects = TicketRecord.objects.filter(query_params).order_by(order_by_str)
+            #如果后续角色项目中增加新用户，新用户无法参看同项目之前用户提交的工单，因此需要fix 此功能
+            #工单记录数据库中又新增两个字段，增加了查询条件;但会出现结果重复的情况，因此需要distinct
+            #进行去重操作
+            for participant_type_id in range(3,5):   #3:部门  4:角色(项目)
+                if((participant_type_id == 3) and (userdeptlist[0])):
+                    Q0 = Q(init_participant_type_id = 3)
+                    Q1 = Q(sn = '3')  #无效数据
+                    for deptid in userdeptlist[1]:  #[True,[x,x,x]]
+                        Q1 |= (Q(init_participant=deptid)&Q0)
+                if((participant_type_id == 4) and (userrolelist[0])):
+                    Q2 = Q(init_participant_type_id = 4)
+                    Q3 = Q(sn = '4')  #无效数据
+                    for roleid in userrolelist[1]:
+                        Q3 |= (Q(init_participant=roleid)&Q2)
+            Q4 = Q(sn = '5')
+            Q4 = Q3 | Q1 | Q4 | query_params
+            #ticket_objects = TicketRecord.objects.filter(Q4).order_by(order_by_str)
+            ticket_objects = TicketRecord.objects.filter(Q4).order_by(order_by_str).distinct()
+
+
         elif category == 'worked':
             worked_query_expression = Q(ticketuser__username=username, ticketuser__worked=True)
             query_params &= worked_query_expression
@@ -234,7 +258,9 @@ class TicketBaseService(BaseService):
         has_permission, msg = workflow_base_service_ins.check_new_permission(username, workflow_id)
         if not has_permission:
             return False, msg
-
+	
+        #add by liro #为了获取workflow state的实体	
+        flag, state_objs = workflow_state_service_ins.get_workflow_states(workflow_id)
         # 获取新建工单必填信息(根据工作流初始状态确定)
         flag, start_state = workflow_state_service_ins.get_workflow_start_state(workflow_id)
         if flag is False:
@@ -286,7 +312,8 @@ class TicketBaseService(BaseService):
                                       parent_ticket_state_id=parent_ticket_state_id,
                                       participant=destination_participant,
                                       participant_type_id=destination_participant_type_id, relation=username,
-                                      creator=username, act_state_id=act_state_id, multi_all_person=multi_all_person)
+                                      creator=username, act_state_id=act_state_id, multi_all_person=multi_all_person,
+				      init_participant=state_objs[0].participant,init_participant_type_id=state_objs[0].participant_type_id)
         new_ticket_obj.save()
 
         # 更新工单关系人
