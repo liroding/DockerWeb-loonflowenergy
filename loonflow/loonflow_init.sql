@@ -107,10 +107,10 @@ CREATE TABLE `account_loonuser` (
 
 LOCK TABLES `account_loonuser` WRITE;
 /*!40000 ALTER TABLE `account_loonuser` DISABLE KEYS */;
-
+/*    dingyinglai      */
 INSERT INTO `account_loonuser` (`id`, `password`, `last_login`, `username`, `alias`, `email`, `phone`, `dept_id`, `is_active`, `is_admin`, `creator`, `gmt_created`, `gmt_modified`, `is_deleted`, `is_workflow_admin`)
 VALUES
-	(1,'pbkdf2_sha256$100000$wZONVjuD1eMK$QM6m9gBR44Elj+Qx65kwzPleULawmgzCQm08xMOyZOQ=','2020-03-15 09:57:33.726154','admin','超级管理员','admin@111.com','',0,1,1,'','2020-03-15 09:57:07.090009','2020-03-15 09:57:07.094560',0,0);
+	(1,'pbkdf2_sha256$100000$qEWr19ysFw8I$utpSuoFVsTROqKcGR+9zQxDtHuUIseELazj/rH0wl4E=','2020-03-15 09:57:33.726154','admin','超级管理员','admin@111.com','',0,1,1,'','2020-03-15 09:57:07.090009','2020-03-15 09:57:07.094560',0,0);
 
 /*!40000 ALTER TABLE `account_loonuser` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -375,6 +375,8 @@ CREATE TABLE `ticket_ticketrecord` (
   `script_run_last_result` tinyint(1) NOT NULL DEFAULT '1' COMMENT '脚本/hook执行状态',
   `multi_all_person` varchar(1000) NOT NULL DEFAULT '{}' COMMENT '多人全部处理进展',
   `act_state_id` int(11) NOT NULL DEFAULT '1' COMMENT '进行状态',
+  `init_participant_type_id` int(11) NOT NULL DEFAULT '0' COMMENT '参与人类型id',
+  `init_participant` varchar(1000) NOT NULL DEFAULT '' COMMENT '参与人',
   PRIMARY KEY (`id`),
   KEY `idx_act_state_id` (`act_state_id`),
   KEY `idx_sn` (`sn`),
